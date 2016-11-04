@@ -7,7 +7,7 @@
 #   define KS_DISPATCH_RELEASE(q)
 #endif
 
-
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 @interface KSPromiseCallbacks : NSObject
 
 @property (copy, nonatomic) promiseValueCallback fulfilledCallback;
@@ -44,13 +44,13 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
 
 @end
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 @interface KSPromise () <KSCancellable> {
     dispatch_semaphore_t _sem;
 }
 
-@property (strong, nonatomic) NSMutableArray *callbacks;
-@property (copy, nonatomic) NSArray *parentPromises;
 
+// 重新定义属性
 @property (strong, nonatomic, readwrite) id value;
 @property (strong, nonatomic, readwrite) NSError *error;
 
@@ -58,7 +58,11 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
 @property (assign, nonatomic) BOOL rejected;
 @property (assign, nonatomic) BOOL cancelled;
 
+// 定义新的属性
 @property (strong, nonatomic) NSHashTable *cancellables;
+
+@property (strong, nonatomic) NSMutableArray *callbacks;
+@property (copy, nonatomic) NSArray *parentPromises;
 
 @end
 
@@ -69,6 +73,8 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
     if (self) {
         self.callbacks = [NSMutableArray array];
         self.cancellables = [NSHashTable weakObjectsHashTable];
+        // 如何创建: semaphore
+        // 个数为0又如何使用呢?
         _sem = dispatch_semaphore_create(0);
     }
     return self;
@@ -80,7 +86,10 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
 
 + (KSPromise *)promise:(void (^)(resolveType resolve, rejectType reject))promiseCallback {
     KSPromise *promise = [[KSPromise alloc] init];
-
+    // 如何理解呢?
+    // 执行: promiseCallback 函数，然后调用: KSPromise 的#resolveWithValue, #rejectWithError
+    // 而: KSPromise 的方法可以在外部定制
+    //    promiseCallback 必须是异步的, 否则同步的调用会让 KSPromise来不及设置自己的属性
     promiseCallback(
     ^(id value){
         [promise resolveWithValue:value];
@@ -132,17 +141,25 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
     return [self when:promises];
 }
 
+// 如何Chain Promise呢?
 - (KSPromise *)then:(promiseValueCallback)fulfilledCallback
               error:(promiseErrorCallback)errorCallback {
+    
+    // 如果当前的Promise
     if (self.cancelled) return nil;
+    
+    // 创建新的Callbacks
     if (![self completed]) {
         KSPromiseCallbacks *callbacks = [[KSPromiseCallbacks alloc] initWithFulfilledCallback:fulfilledCallback
                                                                                 errorCallback:errorCallback
                                                                                   cancellable:self];
         [self.callbacks addObject:callbacks];
+        
+        // 返回: ChildPromise
         return callbacks.childPromise;
     }
 
+    // 如果已经完成，则直接返回一个已经 resolved的KSPromise
     id nextValue;
     if (self.fulfilled) {
         nextValue = self.value;
@@ -161,14 +178,16 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
     return promise;
 }
 
+// 简化写法
 - (KSPromise *)then:(promiseValueCallback)fulfilledCallback {
     return [self then:fulfilledCallback error:nil];
 }
-
+// 简化写法
 - (KSPromise *)error:(promiseErrorCallback)errorCallback {
     return [self then:nil error:errorCallback];
 }
 
+// 添加一个callback, 不管什么情况下都执行
 - (KSPromise *)finally:(void(^)())callback {
     return [self then:^id (id value) {
         callback();
@@ -184,46 +203,68 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
     [self.cancellables addObject:cancellable];
 }
 
+// 取消 Promise
 - (void)cancel {
     self.cancelled = YES;
+    // 回调每一个cancellables
     for (id<KSCancellable> cancellable in self.cancellables) {
         [cancellable cancel];
     }
+    
+    // callbacks直接删除?
     [self.callbacks removeAllObjects];
 }
 
+// 永远等待
 - (id)waitForValue {
     return [self waitForValueWithTimeout:0];
 }
 
 - (id)waitForValueWithTimeout:(NSTimeInterval)timeout {
+    // 超时等待
     if (![self completed]) {
         dispatch_time_t time = timeout == 0 ? DISPATCH_TIME_FOREVER : dispatch_time(DISPATCH_TIME_NOW, timeout * NSEC_PER_SEC);
-        dispatch_semaphore_wait(_sem, time);
+        dispatch_semaphore_wait(_sem, time); // 等待完成
     }
+    
+    // 返回value或error
     if (self.fulfilled) {
         return self.value;
     } else if (self.rejected) {
         return self.error;
     }
+    
+    // 否则返回超时的错误
     return [NSError errorWithDomain:@"KSPromise" code:1 userInfo:@{NSLocalizedDescriptionKey: @"Timeout exceeded while waiting for value"}];
 }
 
 #pragma mark - Resolving and Rejecting
 
+// Creating a resolved promise
 - (void)resolveWithValue:(id)value {
     NSAssert(!self.completed, @"A fulfilled promise can not be resolved again.");
     if (self.completed || self.cancelled) return;
+    
+    
+    // 直接标志成功
+    // 并且有value
     self.value = value;
     self.fulfilled = YES;
+    
+    // 如何理解各种callbacks呢?
     for (KSPromiseCallbacks *callbacks in self.callbacks) {
         id nextValue = self.value;
+        
+        // 如果有: fulfilledCallback 则调用
         if (callbacks.fulfilledCallback) {
             nextValue = callbacks.fulfilledCallback(value);
         } else if (callbacks.deprecatedFulfilledCallback) {
             callbacks.deprecatedFulfilledCallback(self);
             continue;
         }
+        
+        // 将value传递给childPromise
+        // value是否可能为: Error呢?
         [self resolvePromise:callbacks.childPromise withValue:nextValue];
     }
     [self finish];
@@ -232,8 +273,11 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
 - (void)rejectWithError:(NSError *)error {
     NSAssert(!self.completed, @"A fulfilled promise can not be rejected again.");
     if (self.completed || self.cancelled) return;
+    
     self.error = error;
     self.rejected = YES;
+    
+    // 将error传递给所有的callbacks, 以及它们对应的childPromise
     for (KSPromiseCallbacks *callbacks in self.callbacks) {
         id nextValue = self.error;
         if (callbacks.errorCallback) {
@@ -269,7 +313,9 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
             callbacks.deprecatedCompleteCallback(self);
         }
     }
+    
     [self.callbacks removeAllObjects];
+    // 通知其他的线程，可以继续执行了
     dispatch_semaphore_signal(_sem);
 }
 
@@ -317,8 +363,11 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
     BOOL fulfilled = YES;
     NSMutableArray *errors = [NSMutableArray array];
     NSMutableArray *values = [NSMutableArray array];
+    
     for (KSPromise *joinedPromise in self.parentPromises) {
         fulfilled = fulfilled && joinedPromise.completed;
+        // 统计Error 和 Values
+        // 如果失败了, Values似乎不太重要?
         if (joinedPromise.rejected) {
             id error = joinedPromise.error ? joinedPromise.error : [NSNull null];
             [errors addObject:error];
@@ -327,6 +376,8 @@ NSString *const KSPromiseWhenErrorValuesKey = @"KSPromiseWhenErrorValuesKey";
             [values addObject:value];
         }
     }
+    
+    // 如果执行了，则回调:
     if (fulfilled) {
         if (errors.count > 0) {
             NSDictionary *userInfo = @{KSPromiseWhenErrorErrorsKey: errors,

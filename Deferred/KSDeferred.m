@@ -28,6 +28,7 @@
 }
 
 - (void)resolveWithValue:(id)value {
+    // 取消之后，不再回调: promise的方法
     if (!self.cancelled) {
         [self.promise resolveWithValue:value];
     }
@@ -49,6 +50,7 @@
 
 - (void)cancel
 {
+    // 可以取消
     if (!self.cancelled) {
         self.cancelled = YES;
         if (self.cancelledBlock) {

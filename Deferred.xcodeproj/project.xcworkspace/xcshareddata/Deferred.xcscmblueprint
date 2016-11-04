@@ -1,0 +1,30 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "1CFA5E39000C9E0F1E45DC2809C41EAE90E73356",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "1CFA5E39000C9E0F1E45DC2809C41EAE90E73356" : 0,
+    "9C17E6AC4A93E78FE05F88AE0011DD4EAD50139D" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "264A6E8F-7D80-4929-82E5-2C8AA92A24E4",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "1CFA5E39000C9E0F1E45DC2809C41EAE90E73356" : "deferred\/",
+    "9C17E6AC4A93E78FE05F88AE0011DD4EAD50139D" : "deferredVendor\/Cedar"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "Deferred",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "Deferred.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/kseebaldt\/deferred.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "1CFA5E39000C9E0F1E45DC2809C41EAE90E73356"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/pivotal\/cedar.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "9C17E6AC4A93E78FE05F88AE0011DD4EAD50139D"
+    }
+  ]
+}

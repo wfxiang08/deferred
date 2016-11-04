@@ -9,13 +9,17 @@ FOUNDATION_EXPORT NSString *const KSPromiseWhenErrorDomain;
 FOUNDATION_EXPORT NSString *const KSPromiseWhenErrorErrorsKey;
 FOUNDATION_EXPORT NSString *const KSPromiseWhenErrorValuesKey;
 
+// Object-C 如何定义 Generic Class
 @interface KSPromise KS_GENERIC(ObjectType) : NSObject<KSCancellable>
+
+// 定义: Promise的5类回调函数
 typedef __nullable id(^promiseValueCallback)(__nullable KS_GENERIC_TYPE(ObjectType) value);
 typedef __nullable id(^promiseErrorCallback)(NSError * __nullable error);
 typedef void(^deferredCallback)(KSPromise KS_GENERIC(ObjectType) *p);
 
 typedef void(^resolveType)(__nullable KS_GENERIC_TYPE(ObjectType) value);
 typedef void(^rejectType)(NSError * __nullable error);
+
 
 @property (strong, nonatomic, readonly, nullable) KS_GENERIC_TYPE(ObjectType) value;
 @property (strong, nonatomic, readonly, nullable) NSError *error;

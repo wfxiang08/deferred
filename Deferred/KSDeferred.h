@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+// 带有取消功能的
 @interface KSDeferred KS_GENERIC(ObjectType) : NSObject
 
 @property (strong, nonatomic) KSPromise KS_GENERIC(ObjectType) *promise;
